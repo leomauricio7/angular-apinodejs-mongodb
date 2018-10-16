@@ -1,0 +1,183 @@
+<html>
+<head>
+	<title>Lista Telefonica</title>
+	<style>
+		.main {
+			width: 600px;
+      margin: auto;
+      padding: 10px;
+		}
+		.table {
+			margin-top: 20px;
+		}
+    input{
+      border-radius: 3px;
+    }
+		.form-control {
+			margin-bottom: 5px;
+		}
+    .selecionado{
+      background-color: rgb(3, 211, 3);
+    }
+    .negrito{
+      font-weight: bold;
+    }
+    h4{
+      color: #FFF;
+      background-color: red;
+    }
+
+  </style>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+	<script src="js/angular.js"></script>
+	<script>
+    var app = angular.module("app", []);
+    
+		app.controller("Users", function ($scope, $http) {
+			$scope.app = "Lista de Usuários";
+      $scope.users = [];
+      $scope.nome = '';
+      $scope.email = '';
+
+      var url = 'http://localhost:3000';
+
+      function sucess (res) {
+        $scope.users = res.data;
+      } 
+
+      function error (err) {
+        console.log(err)
+      }
+      
+      function limpaTela(){
+        $scope.nome = '';
+        $scope.email = '';
+        atualizaLista();
+      }
+
+      function atualizaLista(){
+        $http.get(url+'/users').then(sucess, error);
+      }
+      
+      $scope.verificaStatus = function(){
+        var result = $scope.users.filter(function(elm){
+          return elm.selecionado == true
+        })
+        return result.length == 1
+      }
+
+      function limparSelecionado(){
+        $scope.users = $scope.users.map(function(elm) {
+          elm.selecionado = false
+          return elm
+        })
+      }
+      
+      function validation(){
+
+        if($scope.nome == ''){
+          $scope.message = 'Preencha o campo nome!';
+            return false;
+        }
+
+        if($scope.email == ''){
+          $scope.message = 'Preencha o campo email!';
+            return false;
+        }
+        return true;
+      }
+      atualizaLista();
+
+      $scope.save = function(){
+        if(validation()){
+          $http.post(url+'/users', {
+            nome: $scope.nome,
+            email: $scope.email
+          }).then(function(){
+            $scope.message = 'Adicionado com sucesso';
+            limpaTela();
+          }, function(){
+            $scope.message = 'Erro';
+          });
+        }
+      };
+
+      //verifica o dado selecionado
+      $scope.dadoSelecionado = function(data){
+        limparSelecionado()
+        $scope.nome = data.nome,
+        $scope.email = data.email
+        $scope.id =  data._id;
+        data.selecionado = true
+        console.log(data._id);
+      };
+
+      $scope.edit = function(){
+        $http.put(url+'/users/'+$scope.id, {
+          nome: $scope.nome,
+          email: $scope.email
+        }).then(function(){
+          $scope.message = 'Usuário atualizado com sucesso';
+          limpaTela();
+          limparSelecionado();
+        }, function(){
+          $scope.message = 'Error';
+        });
+      }
+      
+      //metodo de deletar o usuário
+      $scope.delete = function(data){
+        $http.delete(url+'/users/'+data._id).then(
+          function(){
+            $scope.message = 'Excluido com sucesso';
+            atualizaLista();
+            limparSelecionado();
+            limpaTela();
+          },
+          function(){
+            $scope.message = 'Error';
+          }
+        );
+      };
+
+		});
+	</script>
+</head>
+<body ng-app="app">
+	<div class="main" ng-controller="Users">
+    <div class="row">
+        <div class="col-md-4">
+            <h3 class="page-header text-center">Formulario de Cadastro</h3>
+              {{ message }}
+            <form class="form">
+                <label class="control-label">Nome</label>
+                <input type="text" ng-model="nome" placeholder="Nome" class="form-control"/>
+                <label class="control-label">Email</label>
+                <input type="text" ng-model="email" placeholder="Email" class="form-control"/>
+                <button class="btn btn-primary btn-block" ng-click="save()" ng-hide="verificaStatus()">Adicionar</button>
+                <button class="btn btn-warning btn-block" ng-click="edit(data)" ng-show="verificaStatus()">Atualizar</button>
+              </form>
+        </div>
+      <div class="col-md-4">
+          <input type="text" ng-model="searchUser" placeholder="Pesquisar.." class="form-control">
+          <table class="table table-striped">
+            <tr>
+              <th></th>
+              <th>_ID</th>  
+              <th>Nome</th>
+              <th>Email</th>
+              <th></th>
+            </tr>
+            <tr ng-class="{'selecionado negrito' : data.selecionado }" ng-repeat="data in users | filter: searchUser">
+              <td><input type="checkbox" ng-model="data.selecionado" ng-click= "dadoSelecionado(data)"></td>
+              <td>{{data._id}}</td>
+              <td>{{data.nome}}</td>
+              <td>{{data.email}}</td>
+              <td><button class="btn btn-xs btn-danger" ng-click="delete(data)">Excluir</button></td>
+            </tr>
+          </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
